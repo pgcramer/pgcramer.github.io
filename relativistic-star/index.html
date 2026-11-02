@@ -1,0 +1,650 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Relativistic Blackbody Star</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: observatory console — controls | camera view | readouts + spectrum; stacks to one column on phones */
+:root {
+  --bg: #f2f3f6;
+  --panel: #ffffff;
+  --fg: #171c27;
+  --muted: #586174;
+  --line: #d8dce5;
+  --accent: #b0560c;      /* observed light: solar amber */
+  --rest: #5a6d93;        /* rest-frame curve */
+  --sky: #04060b;         /* camera background */
+  --band-r: rgba(208, 69, 58, 0.14);
+  --band-g: rgba(63, 154, 67, 0.14);
+  --band-b: rgba(52, 102, 194, 0.14);
+  --font-display: "Spectral", Georgia, "Times New Roman", serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0e14; --panel: #131823; --fg: #e3e6ee; --muted: #8e97a9;
+    --line: #262d3b; --accent: #f1a24c; --rest: #8ea2cb; --sky: #000000;
+    --band-r: rgba(230, 95, 85, 0.17); --band-g: rgba(90, 185, 95, 0.15); --band-b: rgba(90, 140, 235, 0.18);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0e14; --panel: #131823; --fg: #e3e6ee; --muted: #8e97a9;
+  --line: #262d3b; --accent: #f1a24c; --rest: #8ea2cb; --sky: #000000;
+  --band-r: rgba(230, 95, 85, 0.17); --band-g: rgba(90, 185, 95, 0.15); --band-b: rgba(90, 140, 235, 0.18);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+header h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+header p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+
+.app {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) minmax(0, 380px);
+  gap: 20px;
+  align-items: start;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  min-width: 0;
+}
+
+/* ---------- controls ---------- */
+.controls { display: flex; flex-direction: column; gap: 18px; }
+fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; min-width: 0; }
+legend {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); padding: 0; margin-bottom: 4px;
+}
+.ctl { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: baseline; }
+.ctl label { font-size: 0.86rem; }
+.ctl output { font-family: var(--font-data); font-size: 0.8rem; font-variant-numeric: tabular-nums; color: var(--fg); text-align: right; white-space: nowrap; }
+.ctl input[type="range"] { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; accent-color: var(--accent); }
+.hint { font-size: 0.76rem; color: var(--muted); margin-top: -5px; }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; font-size: 0.86rem; cursor: pointer; }
+.checks input { accent-color: var(--accent); margin: 0; }
+
+button {
+  font: inherit; font-size: 0.82rem; color: var(--fg); background: transparent;
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets.small button { font-size: 0.78rem; padding: 4px 8px; }
+
+/* ---------- camera ---------- */
+.camera { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.viewport {
+  position: relative; width: 100%; max-width: 100%; aspect-ratio: 1;
+  background: var(--sky); border-radius: 10px; overflow: hidden;
+}
+.viewport canvas { width: 100%; height: 100%; display: block; }
+.viewport .tag {
+  position: absolute; left: 12px; top: 10px; right: 12px;
+  font-family: var(--font-data); font-size: 0.72rem; color: #9aa3b5; letter-spacing: 0.04em;
+}
+.caption { font-size: 0.78rem; color: var(--muted); }
+
+/* ---------- readouts ---------- */
+.side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+dl.info { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; }
+dl.info dt { font-size: 0.86rem; color: var(--muted); }
+dl.info dd { margin: 0; font-family: var(--font-data); font-size: 0.86rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+dl.info dd.key { color: var(--accent); font-weight: 500; }
+.chip { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; margin-right: 6px; vertical-align: -0.05em; border: 1px solid var(--line); }
+sup { font-size: 0.72em; line-height: 0; }
+
+.spectrum h2 { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.spectrum h2 .units { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
+.spectrum canvas { width: 100%; height: 270px; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 16px; height: 2px; margin-right: 6px; vertical-align: middle; background: currentColor; }
+.legend .obs { color: var(--accent); }
+.legend .rst { color: var(--rest); }
+.legend .det::before { height: 9px; background: linear-gradient(90deg, rgba(52,102,194,.45) 0 33%, rgba(63,154,67,.45) 33% 67%, rgba(208,69,58,.45) 67%); }
+.legend .vis::before { height: 6px; background: linear-gradient(90deg, #6a00c8, #0040ff, #00c8c8, #00e000, #f0f000, #ff8000, #ff0000); }
+.legend span > em { font-style: normal; color: var(--muted); }
+
+.notes { color: var(--muted); font-size: 0.86rem; max-width: 82ch; }
+.notes p { margin: 0 0 8px; }
+.notes code { font-family: var(--font-data); font-size: 0.84rem; color: var(--fg); }
+
+@media (max-width: 1140px) {
+  .app { grid-template-columns: 290px minmax(0, 1fr); }
+  .side { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 20px; }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .camera { order: -1; }
+  .side { grid-template-columns: minmax(0, 1fr); }
+  header h1 { font-size: 1.5rem; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Relativistic Blackbody Star</h1>
+    <p>A star moving at relativistic speed, as a camera would record it. The Doppler shift changes its colour, relativistic beaming changes its brightness, and both follow from one rule: a blackbody at temperature T, seen with Doppler factor D, is an exact blackbody at temperature DT. Change the detector band to see the same star in ultraviolet, infrared or X-rays.</p>
+  </header>
+
+  <div class="app">
+    <section class="panel controls" aria-label="Controls">
+      <fieldset>
+        <legend>Star</legend>
+        <div class="ctl">
+          <label for="logT">log<sub>10</sub> T (K)</label><output id="outT" for="logT"></output>
+          <input id="logT" type="range" min="3.30103" max="4.69897" step="any">
+        </div>
+        <div class="ctl">
+          <label for="logR">log<sub>10</sub> R (solar radii)</label><output id="outR" for="logR"></output>
+          <input id="logR" type="range" min="-2" max="3" step="any">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Motion</legend>
+        <div class="ctl">
+          <label for="eta">rapidity η</label><output id="outEta" for="eta"></output>
+          <input id="eta" type="range" min="0" max="4" step="any">
+        </div>
+        <div class="ctl">
+          <label for="theta">direction θ (deg)</label><output id="outTheta" for="theta"></output>
+          <input id="theta" type="range" min="0" max="180" step="any">
+        </div>
+        <div class="hint">0 = toward you, 90 = transverse, 180 = away</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Detector band</legend>
+        <div class="ctl">
+          <label for="logLmin">shortest wavelength</label><output id="outLmin" for="logLmin"></output>
+          <input id="logLmin" type="range" min="0" max="5" step="any">
+        </div>
+        <div class="ctl">
+          <label for="logLmax">longest wavelength</label><output id="outLmax" for="logLmax"></output>
+          <input id="logLmax" type="range" min="0" max="5" step="any">
+        </div>
+        <div class="presets small" id="bandButtons">
+          <button type="button" data-band="X-ray">X-ray</button>
+          <button type="button" data-band="UV">UV</button>
+          <button type="button" data-band="Visible">Visible</button>
+          <button type="button" data-band="Near-IR">Near-IR</button>
+          <button type="button" data-band="Thermal IR">Thermal IR</button>
+        </div>
+        <div class="checks">
+          <label><input id="auto" type="checkbox" checked> exposure relative to the Sun in this band</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Observation</legend>
+        <div class="ctl">
+          <label for="logD">log<sub>10</sub> distance (ly)</label><output id="outD" for="logD"></output>
+          <input id="logD" type="range" min="0" max="4" step="any">
+        </div>
+        <div class="ctl">
+          <label for="logE">log<sub>10</sub> exposure</label><output id="outE" for="logE"></output>
+          <input id="logE" type="range" min="-12" max="12" step="any">
+        </div>
+        <div class="checks">
+          <label><input id="halo" type="checkbox" checked> halo</label>
+          <label><input id="hue" type="checkbox" checked> preserve hue when saturated</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Try</legend>
+        <div class="presets">
+          <button type="button" data-preset="rest">Sun at rest</button>
+          <button type="button" data-preset="toward">Approaching 0.96c</button>
+          <button type="button" data-preset="away">Receding (giant)</button>
+          <button type="button" data-preset="transverse">Transverse 0.96c</button>
+          <button type="button" data-preset="zero">No net shift</button>
+          <button type="button" data-preset="awayIR">Receding, in infrared</button>
+          <button type="button" data-preset="xray">Approaching, in X-rays</button>
+        </div>
+        <div><button type="button" id="reset">Reset</button></div>
+      </fieldset>
+    </section>
+
+    <section class="camera" aria-label="Camera view">
+      <div class="viewport">
+        <canvas id="star" aria-label="Simulated camera image of the star"></canvas>
+        <div class="tag" id="tag"></div>
+      </div>
+      <div class="caption">The star is unresolved: its on-screen size is the camera's point-spread function. Brighter stars saturate over a larger area, as in real photographs. Outside visible light, the blue, green and red channels show the short, middle and long thirds of the detector band (false colour).</div>
+    </section>
+
+    <div class="side">
+      <section class="panel" aria-label="Readouts">
+        <dl class="info">
+          <dt>speed v</dt><dd id="iv"></dd>
+          <dt>γ</dt><dd id="ig"></dd>
+          <dt>radial velocity v<sub>r</sub></dt><dd id="ivr"></dd>
+          <dt>Doppler factor D</dt><dd id="iD" class="key"></dd>
+          <dt>apparent temperature DT</dt><dd id="iT" class="key"></dd>
+          <dt>spectral peak λ<sub>max</sub></dt><dd id="ipk"></dd>
+          <dt>bolometric boost D<sup>4</sup></dt><dd id="iD4"></dd>
+          <dt>band flux ÷ visible Sun</dt><dd id="iband"></dd>
+          <dt>brightest channel (exposed)</dt><dd id="ib"></dd>
+        </dl>
+      </section>
+      <section class="panel spectrum" aria-label="Spectrum">
+        <h2>Spectrum <span class="units">B<sub>λ</sub> in W sr<sup>−1</sup> m<sup>−3</sup></span></h2>
+        <canvas id="spec" aria-label="Observed and rest-frame Planck spectra on log-log axes, with the detector band shaded"></canvas>
+        <div class="legend">
+          <span class="obs">observed</span>
+          <span class="rst">rest frame</span>
+          <span class="det"><em>detector band (B, G, R thirds)</em></span>
+          <span class="vis"><em>visible light</em></span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="notes">
+    <p>For a source at position <code>P</code> moving with velocity <code>V</code> (units of c), the Doppler factor is <code>D = 1 / [γ(1 + v_r)]</code> with <code>v_r = V·P/|P|</code> (positive when receding), and light emitted at wavelength λ arrives at λ/D. Because I<sub>ν</sub>/ν<sup>3</sup> is a Lorentz invariant, a Planck spectrum at T is observed as a Planck spectrum at DT, so the bolometric flux scales as D<sup>4</sup>.</p>
+    <p>The detector band is split into three equal parts in log λ; each channel integrates the observed spectrum over its part. With "exposure relative to the Sun in this band" on, exposure 1 means a stationary Sun at 10 light-years just reaches full brightness in the chosen band. With it off, the reference is always the Sun in visible light, so different bands can be compared directly.</p>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------------- physics ----------------
+  const H = 6.62607015e-34, C = 299792458, KB = 1.380649e-23, WIEN_B = 2.897771955e-3;
+  const LN_2HC2 = Math.log(2 * H * C * C), LN10 = Math.LN10;
+  const T_SUN = 5778, R_SUN = 6.957e8, LIGHT_YEAR = 9.4607304725808e15;
+
+  // ln of Planck spectral radiance B_lambda (W sr^-1 m^-3); logs never under- or overflow
+  function lnPlanck(lam, T) {
+    const x = H * C / (lam * KB * T);
+    const lnEm1 = x > 30 ? x + Math.log1p(-Math.exp(-x)) : Math.log(Math.expm1(x));
+    return LN_2HC2 - 5 * Math.log(lam) - lnEm1;
+  }
+  function logSumExp(a) {
+    const m = Math.max(...a);
+    if (!Number.isFinite(m)) return m;
+    let s = 0; for (const v of a) s += Math.exp(v - m);
+    return m + Math.log(s);
+  }
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+  // D = lambda_src / lambda_det; detector at origin, P = source position at emission
+  function dopplerFactor(P, V) {
+    const vr = dot(V, P) / Math.sqrt(dot(P, P));
+    return Math.sqrt(1 - dot(V, V)) / (1 + vr);
+  }
+
+  // ---------------- detector ----------------
+  const VISIBLE = [380e-9, 750e-9];
+  const BANDS = {
+    "X-ray": [1e-9, 10e-9], "UV": [10e-9, 380e-9], "Visible": VISIBLE,
+    "Near-IR": [750e-9, 2.5e-6], "Thermal IR": [2.5e-6, 25e-6],
+  };
+  const subBandEdges = (lo, hi) => { const r = Math.cbrt(hi / lo); return [lo, lo * r, lo * r * r, hi]; };
+
+  // ln of the integral of B_lambda over [a, b]: Simpson's rule in ln(lambda)
+  const NS = 48;
+  function lnBandIntegral(a, b, T) {
+    const ua = Math.log(a), h = (Math.log(b) - ua) / NS, terms = [];
+    for (let i = 0; i <= NS; i++) {
+      const u = ua + i * h, w = (i === 0 || i === NS) ? 1 : (i % 2 ? 4 : 2);
+      terms.push(lnPlanck(Math.exp(u), T) + u + Math.log(w * h / 3));
+    }
+    return logSumExp(terms);
+  }
+  // ln of observed flux in the R, G, B channels (long, middle, short thirds)
+  function lnChannelFlux(tStar, rStar, P, V, band) {
+    const tApp = dopplerFactor(P, V) * tStar, e = subBandEdges(band[0], band[1]);
+    const lnOmega = Math.log(Math.PI * rStar * rStar / dot(P, P));
+    return [2, 1, 0].map(k => lnOmega + lnBandIntegral(e[k], e[k + 1], tApp));
+  }
+  const SUN = [T_SUN, R_SUN, [10 * LIGHT_YEAR, 0, 0], [0, 0, 0]];
+  const refCache = new Map();
+  function lnReference(band) {
+    const key = band.join(",");
+    if (!refCache.has(key)) refCache.set(key, Math.max(...lnChannelFlux(...SUN, band)));
+    return refCache.get(key);
+  }
+  const LN_SUN_VISIBLE_TOTAL = logSumExp(lnChannelFlux(...SUN, VISIBLE));
+
+  const srgb = x => x < 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+
+  // ---------------- point-spread function ----------------
+  const N = 241, HALF = 120;
+  const PSF = { core: new Float32Array(N * N), halo: new Float32Array(N * N) };
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const r2 = (i - HALF) ** 2 + (j - HALF) ** 2, g = Math.exp(-r2 / 8);
+    PSF.core[i * N + j] = g;
+    PSF.halo[i * N + j] = g + 0.02 * Math.pow(1 + r2 / 25, -1.5);
+  }
+  const off = document.createElement("canvas");
+  off.width = off.height = N;
+  const offCtx = off.getContext("2d");
+  const img = offCtx.createImageData(N, N);
+
+  function renderStarImage(lnLin, halo, keepHue) {
+    const p = halo ? PSF.halo : PSF.core, d = img.data;
+    const lnPeak = Math.max(...lnLin), dark = lnPeak < -700;
+    const peak = Math.exp(Math.min(lnPeak, 700));
+    const ratio = lnLin.map(v => Math.exp(v - lnPeak));
+    for (let k = 0; k < N * N; k++) {
+      let r = 0, g = 0, b = 0;
+      if (!dark) {
+        if (keepHue) {
+          const a = Math.min(peak * p[k], 1);
+          r = a * ratio[0]; g = a * ratio[1]; b = a * ratio[2];
+        } else {
+          const q = peak * p[k];
+          r = Math.min(q * ratio[0], 1); g = Math.min(q * ratio[1], 1); b = Math.min(q * ratio[2], 1);
+        }
+      }
+      d[4 * k] = Math.round(255 * srgb(r));
+      d[4 * k + 1] = Math.round(255 * srgb(g));
+      d[4 * k + 2] = Math.round(255 * srgb(b));
+      d[4 * k + 3] = 255;
+    }
+    offCtx.putImageData(img, 0, 0);
+  }
+
+  // ---------------- formatting ----------------
+  const minus = s => s.replace(/-/g, "−");
+  // format 10**L with sig significant digits, even far outside double range
+  function fmtLog10(L, sig, negative = false) {
+    let e = Math.floor(L), m = Number(Math.pow(10, L - e).toFixed(sig - 1));
+    if (m >= 10) { m /= 10; e += 1; }
+    const sign = negative ? "−" : "";
+    if (e >= -4 && e < 6) {
+      let s = (m * Math.pow(10, e)).toFixed(Math.max(sig - 1 - e, 0));
+      if (s.includes(".")) s = s.replace(/0+$/, "").replace(/\.$/, "");
+      return sign + s;
+    }
+    const ms = m.toFixed(sig - 1).replace(/0+$/, "").replace(/\.$/, "");
+    return `${sign}${ms}&thinsp;×&thinsp;10<sup>${minus(String(e))}</sup>`;
+  }
+  const fmt = (x, sig) => (x === 0 || !Number.isFinite(x)) ? String(x) : fmtLog10(Math.log10(Math.abs(x)), sig, x < 0);
+  const fmtWavelength = lam => {
+    const nm = lam * 1e9;
+    return nm < 1000 ? `${fmt(nm, 3)} nm` : `${fmt(nm / 1000, 3)} µm`;
+  };
+
+  // ---------------- controls ----------------
+  const $ = id => document.getElementById(id);
+  const DEFAULTS = {
+    logT: Math.log10(T_SUN), logR: 0, eta: 0, theta: 0,
+    logLmin: Math.log10(380), logLmax: Math.log10(750), logD: 1, logE: 0,
+  };
+  const DEFAULT_CHECKS = { auto: true, halo: true, hue: true };
+  const sliders = Object.fromEntries(Object.keys(DEFAULTS).map(k => [k, $(k)]));
+  const checks = { auto: $("auto"), halo: $("halo"), hue: $("hue") };
+  const bandVals = name => ({ logLmin: Math.log10(BANDS[name][0] * 1e9), logLmax: Math.log10(BANDS[name][1] * 1e9) });
+  const zeroShiftTheta = eta => Math.acos(Math.tanh(eta / 2)) * 180 / Math.PI;
+
+  const PRESETS = {
+    rest: {},
+    toward: { eta: 2, theta: 0 },
+    away: { eta: 2, theta: 180, logR: 3, logE: 5 },
+    transverse: { eta: 2, theta: 90, logE: 5 },
+    zero: { eta: 2, theta: zeroShiftTheta(2) },
+    awayIR: { eta: 2, theta: 180, logE: 3, ...bandVals("Thermal IR") },
+    xray: { eta: 4, theta: 0, logE: -6, ...bandVals("X-ray"), checks: { auto: false } },
+  };
+
+  function apply(vals) {
+    const { checks: c = {}, ...rest } = vals;
+    for (const [k, v] of Object.entries({ ...DEFAULTS, ...rest })) sliders[k].value = v;
+    for (const [k, v] of Object.entries({ ...DEFAULT_CHECKS, ...c })) checks[k].checked = v;
+    update();
+  }
+  function setBand(name) {
+    for (const [k, v] of Object.entries(bandVals(name))) sliders[k].value = v;
+    update();
+  }
+  // keep the band at least ~12% wide
+  function constrainBand(moved) {
+    const lo = Number(sliders.logLmin.value), hi = Number(sliders.logLmax.value), gap = 0.05;
+    if (hi >= lo + gap) return;
+    if (moved === "logLmin") {
+      if (lo + gap <= 5) sliders.logLmax.value = lo + gap; else sliders.logLmin.value = hi - gap;
+    } else {
+      if (hi - gap >= 0) sliders.logLmin.value = hi - gap; else sliders.logLmax.value = lo + gap;
+    }
+  }
+
+  document.querySelectorAll("[data-preset]").forEach(b =>
+    b.addEventListener("click", () => apply(PRESETS[b.dataset.preset])));
+  document.querySelectorAll("[data-band]").forEach(b =>
+    b.addEventListener("click", () => setBand(b.dataset.band)));
+  $("reset").addEventListener("click", () => apply({}));
+  Object.entries(sliders).forEach(([k, s]) => s.addEventListener("input", () => {
+    if (k === "logLmin" || k === "logLmax") constrainBand(k);
+    update();
+  }));
+  Object.values(checks).forEach(c => c.addEventListener("change", update));
+
+  // ---------------- state + update ----------------
+  let state = null;
+
+  function update() {
+    const val = Object.fromEntries(Object.entries(sliders).map(([k, s]) => [k, Number(s.value)]));
+    const band = [10 ** val.logLmin * 1e-9, 10 ** val.logLmax * 1e-9];
+    const tStar = 10 ** val.logT, rStar = R_SUN * 10 ** val.logR, dist = LIGHT_YEAR * 10 ** val.logD;
+    const eta = val.eta, v = Math.tanh(eta), th = val.theta * Math.PI / 180;
+
+    // source on the +x axis; theta = 0 means moving straight toward the detector
+    const P = [dist, 0, 0];
+    const V = [-v * Math.cos(th), v * Math.sin(th), 0];
+    const gamma = Math.cosh(eta);
+    const vr = dot(V, P) / Math.sqrt(dot(P, P));
+    const D = dopplerFactor(P, V);
+    const tApp = D * tStar;
+
+    const lnF = lnChannelFlux(tStar, rStar, P, V, band);
+    const lnRef = lnReference(checks.auto.checked ? band : VISIBLE);
+    const lnLin = lnF.map(x => val.logE * LN10 + x - lnRef);
+    renderStarImage(lnLin, checks.halo.checked, checks.hue.checked);
+    state = { tStar, tApp, band, dist: 10 ** val.logD };
+
+    // highlight a band button when the band matches it
+    document.querySelectorAll("[data-band]").forEach(b => {
+      const [lo, hi] = BANDS[b.dataset.band];
+      const on = Math.abs(Math.log10(lo) - Math.log10(band[0])) < 0.003 && Math.abs(Math.log10(hi) - Math.log10(band[1])) < 0.003;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+
+    // readouts beside sliders
+    $("outT").innerHTML = `T = ${fmt(tStar, 5)} K`;
+    $("outR").innerHTML = `R = ${fmt(10 ** val.logR, 3)} R<sub>☉</sub>`;
+    $("outEta").innerHTML = `v = ${v.toFixed(6)} c`;
+    $("outTheta").innerHTML = `${val.theta.toFixed(1)}°`;
+    $("outLmin").innerHTML = fmtWavelength(band[0]);
+    $("outLmax").innerHTML = fmtWavelength(band[1]);
+    $("outD").innerHTML = `d = ${fmt(10 ** val.logD, 4)} ly`;
+    $("outE").innerHTML = `E = ${fmtLog10(val.logE, 3)}`;
+
+    // info table
+    const lnPeak = Math.max(...lnLin);
+    const chip = lnPeak > -700 ? lnLin.map(x => Math.round(255 * srgb(Math.exp(x - lnPeak)))) : [0, 0, 0];
+    $("iv").textContent = v.toFixed(6);
+    $("ig").innerHTML = fmt(gamma, 5);
+    $("ivr").textContent = minus(vr.toFixed(4)).replace("−0.0000", "0.0000");
+    $("iD").innerHTML = fmt(D, 5);
+    $("iT").innerHTML = `<span class="chip" style="background: rgb(${chip.join(",")})"></span>${fmt(tApp, 5)} K`;
+    $("ipk").innerHTML = fmtWavelength(WIEN_B / tApp);
+    $("iD4").innerHTML = fmt(D ** 4, 4);
+    $("iband").innerHTML = fmtLog10((logSumExp(lnF) - LN_SUN_VISIBLE_TOTAL) / LN10, 3);
+    $("ib").innerHTML = fmtLog10(lnPeak / LN10, 4);
+
+    drawStar();
+    drawSpectrum();
+  }
+
+  // ---------------- drawing ----------------
+  const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  function fitCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    return { w: r.width, h: r.height, dpr };
+  }
+
+  const starCv = $("star"), starCtx = starCv.getContext("2d");
+  function drawStar() {
+    fitCanvas(starCv);
+    starCtx.setTransform(1, 0, 0, 1, 0, 0);
+    starCtx.imageSmoothingEnabled = true;
+    starCtx.imageSmoothingQuality = "high";
+    starCtx.drawImage(off, 0, 0, starCv.width, starCv.height);
+    const [lo, hi] = state.band;
+    const falseColour = lo < 379e-9 || hi > 751e-9;
+    const d = state.dist >= 100 ? Math.round(state.dist) : state.dist.toPrecision(3);
+    $("tag").innerHTML = `camera view · ${fmtWavelength(lo)}–${fmtWavelength(hi)}${falseColour ? " · false colour" : ""} · d = ${d} ly`;
+  }
+
+  function wavelengthColor(w) {
+    let r, g, b;
+    if (w < 440) { r = (440 - w) / 60; g = 0; b = 1; }
+    else if (w < 490) { r = 0; g = (w - 440) / 50; b = 1; }
+    else if (w < 510) { r = 0; g = 1; b = (510 - w) / 20; }
+    else if (w < 580) { r = (w - 510) / 70; g = 1; b = 0; }
+    else if (w < 645) { r = 1; g = (645 - w) / 65; b = 0; }
+    else { r = 1; g = 0; b = 0; }
+    const f = w < 420 ? 0.3 + 0.7 * (w - 380) / 40 : w > 700 ? 0.3 + 0.7 * (750 - w) / 50 : 1;
+    return `rgb(${Math.round(255 * r * f)},${Math.round(255 * g * f)},${Math.round(255 * b * f)})`;
+  }
+
+  const specCv = $("spec"), specCtx = specCv.getContext("2d");
+  const LX0 = 0, LX1 = 5;   // log10 nm: 1 nm .. 100 µm
+  const X_LABELS = { 0: "1 nm", 1: "10 nm", 2: "100 nm", 3: "1 µm", 4: "10 µm", 5: "100 µm" };
+  function drawSpectrum() {
+    const { w, h, dpr } = fitCanvas(specCv);
+    const ctx = specCtx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const muted = cssVar("--muted"), line = cssVar("--line");
+    const accent = cssVar("--accent"), rest = cssVar("--rest");
+    const tints = [cssVar("--band-b"), cssVar("--band-g"), cssVar("--band-r")];
+    const dataFont = cssVar("--font-data");
+
+    const L = 50, R = 14, T = 8, B = 28;
+    const pw = w - L - R, ph = h - T - B;
+    const n = Math.max(300, Math.round(pw * 1.5));
+
+    // log10 B_lambda on a grid, for both curves
+    const xs = [], obs = [], rst = [];
+    for (let i = 0; i <= n; i++) {
+      const lx = LX0 + (LX1 - LX0) * i / n, lam = 10 ** lx * 1e-9;
+      xs.push(lx);
+      obs.push(lnPlanck(lam, state.tApp) / LN10);
+      rst.push(lnPlanck(lam, state.tStar) / LN10);
+    }
+    const hi = Math.max(...obs, ...rst) + Math.log10(3), lo = hi - 8;
+    const px = lx => L + (lx - LX0) / (LX1 - LX0) * pw;
+    const py = ly => T + (hi - ly) / (hi - lo) * ph;
+
+    // detector band: three sub-band tints
+    const e = subBandEdges(state.band[0], state.band[1]).map(x => Math.log10(x * 1e9));
+    for (let k = 0; k < 3; k++) {
+      ctx.fillStyle = tints[k];
+      ctx.fillRect(px(e[k]), T, px(e[k + 1]) - px(e[k]), ph);
+    }
+
+    // grid and y labels at whole decades
+    ctx.font = `10.5px ${dataFont}`;
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 1;
+    const step = ph < 200 ? 2 : 1;
+    for (let k = Math.ceil(lo); k <= Math.floor(hi); k++) {
+      const y = py(k);
+      ctx.strokeStyle = line;
+      ctx.beginPath(); ctx.moveTo(L, Math.round(y) + 0.5); ctx.lineTo(L + pw, Math.round(y) + 0.5); ctx.stroke();
+      if ((k - Math.ceil(lo)) % step) continue;
+      ctx.fillStyle = muted;
+      ctx.textAlign = "right";
+      ctx.font = `9px ${dataFont}`;
+      const supW = ctx.measureText(String(k)).width;
+      ctx.fillText(minus(String(k)), L - 6, y - 4);
+      ctx.font = `10.5px ${dataFont}`;
+      ctx.fillText("10", L - 7 - supW, y);
+    }
+
+    // x axis: decades of wavelength
+    ctx.textBaseline = "top"; ctx.fillStyle = muted;
+    for (let k = LX0; k <= LX1; k++) {
+      const X = Math.round(px(k)) + 0.5;
+      ctx.strokeStyle = line;
+      ctx.beginPath(); ctx.moveTo(X, T); ctx.lineTo(X, T + ph + 4); ctx.stroke();
+      ctx.textAlign = k === LX0 ? "left" : k === LX1 ? "right" : "center";
+      ctx.fillText(X_LABELS[k], k === LX0 ? X - 2 : k === LX1 ? X + 2 : X, T + ph + 7);
+    }
+
+    // visible light: rainbow strip along the axis
+    for (let X = Math.floor(px(Math.log10(380))); X < px(Math.log10(750)); X++) {
+      const wl = 10 ** (LX0 + (X + 0.5 - L) / pw * (LX1 - LX0));
+      ctx.fillStyle = wavelengthColor(Math.min(Math.max(wl, 380), 750));
+      ctx.fillRect(X, T + ph - 5, 1, 5);
+    }
+
+    // frame
+    ctx.strokeStyle = line;
+    ctx.strokeRect(L + 0.5, T + 0.5, pw - 1, ph - 1);
+
+    // curves, clipped to the plot area
+    ctx.save();
+    ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
+    const curve = (ys, color) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+      let pen = false;
+      for (let i = 0; i <= n; i++) {
+        if (!(ys[i] > lo - 1)) { pen = false; continue; }
+        const X = px(xs[i]), Y = py(ys[i]);
+        pen ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+        pen = true;
+      }
+      ctx.stroke();
+    };
+    curve(rst, rest);
+    curve(obs, accent);
+    ctx.restore();
+  }
+
+  // redraw on resize and theme change
+  new ResizeObserver(() => state && (drawStar(), drawSpectrum())).observe(document.body);
+  const redraw = () => state && drawSpectrum();
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw); } catch (e) {}
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+
+  apply({});
+})();
+</script>
+
+</body></html>

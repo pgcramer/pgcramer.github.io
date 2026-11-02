@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computational Thought Experiments</title>
+<meta name="description" content="Interactive physics demos, videos and write-ups by Peter Cramer.">
+<style>
+:root {
+  --bg: #f4f5f8; --panel: #ffffff; --fg: #171c27; --muted: #586174; --line: #d8dce5; --accent: #b0560c;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0b0e14; --panel: #131823; --fg: #e3e6ee; --muted: #8e97a9; --line: #262d3b; --accent: #f1a24c;
+          color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 48px 16px 64px;
+}
+main { max-width: 760px; margin: 0 auto; }
+h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); margin: 0 0 40px; max-width: 60ch; }
+h2 { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+.topic {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px;
+}
+.topic h3 { margin: 0 0 6px; font-size: 1.3rem; }
+.topic p { margin: 0 0 18px; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 10px; }
+.links a, .links span {
+  display: inline-block; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
+  color: var(--fg); text-decoration: none; font-size: 0.95rem;
+}
+.links a:hover { border-color: var(--accent); color: var(--accent); }
+.links a.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.links span { color: var(--muted); border-style: dashed; }
+footer { margin-top: 48px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Computational Thought Experiments</h1>
+  <p class="lede">Physics we can't observe directly, worked out by calculation instead. Each topic has an interactive demo
+    to explore, a video for a general audience, and a write-up with the full mathematics.</p>
+
+  <h2>Topics</h2>
+  <section class="topic">
+    <h3>The Relativistic Star</h3>
+    <p>What would a star look like moving at 96% of the speed of light? Its colour, brightness and spectrum, in any
+      direction and through any camera, from X-rays to the far infrared.</p>
+    <div class="links">
+      <a class="primary" href="relativistic-star/">Interactive demo</a>
+      <span>Video: coming soon</span>
+      <span>Write-up: coming soon</span>
+    </div>
+  </section>
+
+  <footer>Peter Cramer</footer>
+</main>
+</body>
+</html>
